@@ -69,7 +69,7 @@
                                 and use it as the key.
                                 ]]>
                     </description>
-                    <ownerUsername>confluentinc</ownerUsername>
+                    <ownerUsername>Raja Soundarapandian</ownerUsername>
                     <confluentControlCenterIntegration>true</confluentControlCenterIntegration>
                     <documentationUrl>https://docs.confluent.io/current/connect/transforms/index.html</documentationUrl>
                     <sourceUrl>none</sourceUrl>
