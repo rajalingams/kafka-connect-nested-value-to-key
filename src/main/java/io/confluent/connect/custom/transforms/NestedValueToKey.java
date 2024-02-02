@@ -96,6 +96,8 @@ public class NestedValueToKey<R extends ConnectRecord<R>> implements Transformat
     private void printWarn(R record, String message, Object... args) {
         if (errorFieldExtractor != null) {
             Object errorFieldValue = errorFieldExtractor.apply(record);
+            if (errorFieldValue == null)
+                log.debug("Specified json path {} for error field is not available in {}", errorField, record.value());
             log.warn(String.format("%s. Error field: %s", message, errorFieldValue), args);
         } else {
             log.warn(message, args);
@@ -134,7 +136,7 @@ public class NestedValueToKey<R extends ConnectRecord<R>> implements Transformat
             this.isErrorField = errorField;
         }
 
-            @Override
+        @Override
         public Object apply(R record) {
             Object data = convertObject(
                     requireStruct(record.value(), FIELD_EXTRACTION_PURPOSE),

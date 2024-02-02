@@ -1,12 +1,10 @@
 package io.confluent.connect.custom.transforms;
 
 import com.jayway.jsonpath.InvalidPathException;
-import com.jayway.jsonpath.JsonPathException;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
-import org.apache.kafka.connect.errors.DataException;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.After;
 import org.junit.Test;
@@ -68,7 +66,7 @@ public class NestedValueToKeyTest {
     }
 
     @Test
-    public void checkConfig(){
+    public void checkConfig() {
         assertTrue(xform.config().configKeys().containsKey(NestedValueToKey.ConfigName.FIELD_CONFIG));
     }
 
@@ -95,7 +93,7 @@ public class NestedValueToKeyTest {
 
     @Test
     public void testWithUnavailableFieldAndErrorField() {
-        xform.configure(new HashMap<String, Object>(){{
+        xform.configure(new HashMap<String, Object>() {{
             put(NestedValueToKey.ConfigName.FIELD_CONFIG, "age");
             put(NestedValueToKey.ConfigName.ERROR_MESSAGE_FIELD, "id");
         }});
@@ -118,9 +116,33 @@ public class NestedValueToKeyTest {
     }
 
     @Test
+    public void testWithUnavailableFieldAndEUnavailablerrorField() {
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKey.ConfigName.FIELD_CONFIG, "age");
+            put(NestedValueToKey.ConfigName.ERROR_MESSAGE_FIELD, "xxx");
+        }});
+        final Schema simpleStructSchema = SchemaBuilder.struct().name("name").version(1).doc("doc").field("id", Schema.OPTIONAL_INT64_SCHEMA).build();
+        final Struct simpleStruct = new Struct(simpleStructSchema).put("id", 100L);
+        final SourceRecord record = new SourceRecord(
+                null,
+                null,
+                "test",
+                null,
+                "key",
+                simpleStructSchema,
+                simpleStruct
+        );
+        SourceRecord transformedRecord = xform.apply(record);
+        assertNull(
+                "Record should not be affected by missing optional field",
+                transformedRecord.key()
+        );
+    }
+
+    @Test
     public void testWithUnavailableFieldWithKeyOnError() {
         String errorKey = "Undefined";
-        xform.configure(new HashMap<String, Object>(){{
+        xform.configure(new HashMap<String, Object>() {{
             put(NestedValueToKey.ConfigName.FIELD_CONFIG, "age");
             put(NestedValueToKey.ConfigName.KEY_ON_ERROR, errorKey);
         }});
@@ -142,12 +164,13 @@ public class NestedValueToKeyTest {
         );
     }
 
+
     @Test
     public void FieldJsonPathSchemaless() {
         final String fieldName = "$.f1.field";
         final String expectedKey = "dummy";
 
-        xform.configure(new HashMap<String, Object>(){{
+        xform.configure(new HashMap<String, Object>() {{
             put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
         }});
 
@@ -158,10 +181,10 @@ public class NestedValueToKeyTest {
                 null,
                 "key",
                 null,
-                new HashMap<String, Object>(){{
+                new HashMap<String, Object>() {{
                     put("name", "test");
-                    put( "f1",
-                            new HashMap<String, Object>(){{
+                    put("f1",
+                            new HashMap<String, Object>() {{
                                 put(NestedValueToKey.ConfigName.FIELD_CONFIG, expectedKey);
                                 put("f3", "dummy");
                             }}
@@ -180,7 +203,7 @@ public class NestedValueToKeyTest {
         final String fieldName = "$.f1.f3";
         final String expectedKey = "dummy";
 
-        xform.configure(new HashMap<String, Object>(){{
+        xform.configure(new HashMap<String, Object>() {{
             put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
         }});
 
@@ -207,15 +230,15 @@ public class NestedValueToKeyTest {
                 null,
                 "key",
                 schema,
-                new Struct(schema){{
+                new Struct(schema) {{
                     put("name", "field");
-                    put( "f1",
-                            new Struct(nestedSchema){{
+                    put("f1",
+                            new Struct(nestedSchema) {{
                                 put("field", "false");
                                 put("f3", expectedKey);
                             }}
                     );
-                    put("books", new ArrayList<String>(){{
+                    put("books", new ArrayList<String>() {{
                         add("book1");
                         add("book2");
                     }});
@@ -233,7 +256,7 @@ public class NestedValueToKeyTest {
         final String fieldName = "$.properties.ACCTSUFF.integer.integer";
         final int expectedKey = 78;
 
-        xform.configure(new HashMap<String, Object>(){{
+        xform.configure(new HashMap<String, Object>() {{
             put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
         }});
 
@@ -254,7 +277,7 @@ public class NestedValueToKeyTest {
                         .field("messageType", Schema.STRING_SCHEMA)
                         .field("timestamp", Schema.INT64_SCHEMA)
                         .field("priority", Schema.INT32_SCHEMA)
-                        .field("properties",propertyMapSchema).build();
+                        .field("properties", propertyMapSchema).build();
 
 
         final SourceRecord record = new SourceRecord(
@@ -264,17 +287,17 @@ public class NestedValueToKeyTest {
                 null,
                 "key",
                 schema,
-                new Struct(schema){{
+                new Struct(schema) {{
                     put("messageID", "ID:414d512055544c4d5131484520202020a005b06502dcde96");
                     put("messageType", "text");
-                            put("timestamp",1706545026030L);
-                            put("priority",4);
-                    put( "properties",
-                            new HashMap<String, Struct>(){{
-                                put("ACCTSUFF", new Struct(propertyValueSchema){{
+                    put("timestamp", 1706545026030L);
+                    put("priority", 4);
+                    put("properties",
+                            new HashMap<String, Struct>() {{
+                                put("ACCTSUFF", new Struct(propertyValueSchema) {{
                                     put("propertyType", "integer");
-                                    put("integer", new Struct(integerSchema){{
-                                       put("integer", 78);
+                                    put("integer", new Struct(integerSchema) {{
+                                        put("integer", 78);
                                     }});
                                     put("string", null);
                                 }});
