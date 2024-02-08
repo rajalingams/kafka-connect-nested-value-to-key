@@ -283,7 +283,6 @@ In case the field name is missing or empty in the body, the field value will be 
 ]
 ```
 -----
------
 
 > [!NOTE]
 > Json path is applicable only if the value has a schema. If the value does not have schema, you can configure only the root level items with the field name.
