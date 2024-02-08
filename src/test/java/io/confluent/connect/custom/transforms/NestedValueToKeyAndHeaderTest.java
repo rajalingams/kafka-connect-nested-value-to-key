@@ -5,6 +5,7 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
+import org.apache.kafka.connect.header.ConnectHeaders;
 import org.apache.kafka.connect.source.SourceRecord;
 import org.junit.After;
 import org.junit.Test;
@@ -15,8 +16,8 @@ import java.util.HashMap;
 
 import static org.junit.Assert.*;
 
-public class NestedValueToKeyTest {
-    private final NestedValueToKey<SourceRecord> xform = new NestedValueToKey<>();
+public class NestedValueToKeyAndHeaderTest {
+    private final NestedValueToKeyAndHeader<SourceRecord> xform = new NestedValueToKeyAndHeader<>();
 
     @After
     public void teardown() {
@@ -27,7 +28,7 @@ public class NestedValueToKeyTest {
     public void testSimpleSchemaWithFieldExtraction() {
 
         Long expectedKey = 200L;
-        xform.configure(Collections.singletonMap(NestedValueToKey.ConfigName.FIELD_CONFIG, "id"));
+        xform.configure(Collections.singletonMap(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "id"));
         final Schema simpleStructSchema = SchemaBuilder.struct().name("name").version(1).doc("doc").field("id", Schema.OPTIONAL_INT64_SCHEMA).build();
         final Struct simpleStruct = new Struct(simpleStructSchema).put("id", expectedKey);
         final SourceRecord record = new SourceRecord(
@@ -57,22 +58,22 @@ public class NestedValueToKeyTest {
 
     @Test(expected = InvalidPathException.class)
     public void providedInvalidJsonPath() {
-        xform.configure(Collections.singletonMap(NestedValueToKey.ConfigName.FIELD_CONFIG, "$a$"));
+        xform.configure(Collections.singletonMap(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "$a$"));
     }
 
     @Test(expected = ConfigException.class)
     public void requiredConfigCannotBeEmpty() {
-        xform.configure(Collections.singletonMap(NestedValueToKey.ConfigName.FIELD_CONFIG, ""));
+        xform.configure(Collections.singletonMap(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, ""));
     }
 
     @Test
     public void checkConfig() {
-        assertTrue(xform.config().configKeys().containsKey(NestedValueToKey.ConfigName.FIELD_CONFIG));
+        assertTrue(xform.config().configKeys().containsKey(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG));
     }
 
     @Test
     public void testWithUnavailableField() {
-        xform.configure(Collections.singletonMap(NestedValueToKey.ConfigName.FIELD_CONFIG, "age"));
+        xform.configure(Collections.singletonMap(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "age"));
         final Schema simpleStructSchema = SchemaBuilder.struct().name("name").version(1).doc("doc").field("id", Schema.OPTIONAL_INT64_SCHEMA).build();
         final Struct simpleStruct = new Struct(simpleStructSchema).put("id", 100L);
         final SourceRecord record = new SourceRecord(
@@ -94,8 +95,8 @@ public class NestedValueToKeyTest {
     @Test
     public void testWithUnavailableFieldAndErrorField() {
         xform.configure(new HashMap<String, Object>() {{
-            put(NestedValueToKey.ConfigName.FIELD_CONFIG, "age");
-            put(NestedValueToKey.ConfigName.ERROR_MESSAGE_FIELD, "id");
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "age");
+            put(NestedValueToKeyAndHeader.ConfigName.ERROR_MESSAGE_FIELD, "id");
         }});
         final Schema simpleStructSchema = SchemaBuilder.struct().name("name").version(1).doc("doc").field("id", Schema.OPTIONAL_INT64_SCHEMA).build();
         final Struct simpleStruct = new Struct(simpleStructSchema).put("id", 100L);
@@ -118,8 +119,8 @@ public class NestedValueToKeyTest {
     @Test
     public void testWithUnavailableFieldAndEUnavailablerrorField() {
         xform.configure(new HashMap<String, Object>() {{
-            put(NestedValueToKey.ConfigName.FIELD_CONFIG, "age");
-            put(NestedValueToKey.ConfigName.ERROR_MESSAGE_FIELD, "xxx");
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "age");
+            put(NestedValueToKeyAndHeader.ConfigName.ERROR_MESSAGE_FIELD, "xxx");
         }});
         final Schema simpleStructSchema = SchemaBuilder.struct().name("name").version(1).doc("doc").field("id", Schema.OPTIONAL_INT64_SCHEMA).build();
         final Struct simpleStruct = new Struct(simpleStructSchema).put("id", 100L);
@@ -143,8 +144,8 @@ public class NestedValueToKeyTest {
     public void testWithUnavailableFieldWithKeyOnError() {
         String errorKey = "Undefined";
         xform.configure(new HashMap<String, Object>() {{
-            put(NestedValueToKey.ConfigName.FIELD_CONFIG, "age");
-            put(NestedValueToKey.ConfigName.KEY_ON_ERROR, errorKey);
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "age");
+            put(NestedValueToKeyAndHeader.ConfigName.KEY_ON_ERROR, errorKey);
         }});
         final Schema simpleStructSchema = SchemaBuilder.struct().name("name").version(1).doc("doc").field("id", Schema.OPTIONAL_INT64_SCHEMA).build();
         final Struct simpleStruct = new Struct(simpleStructSchema).put("id", 100L);
@@ -168,10 +169,10 @@ public class NestedValueToKeyTest {
     @Test
     public void FieldJsonPathSchemalessInvalidFieldName() {
         final String fieldName = "$.f1.field";
-        final String expectedKey = "test";
+        final String expectedKey = "dummy";
 
         xform.configure(new HashMap<String, Object>() {{
-            put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, fieldName);
         }});
 
         final SourceRecord record = new SourceRecord(
@@ -185,7 +186,7 @@ public class NestedValueToKeyTest {
                     put("name", "test");
                     put("f1",
                             new HashMap<String, Object>() {{
-                                put(NestedValueToKey.ConfigName.FIELD_CONFIG, expectedKey);
+                                put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, expectedKey);
                                 put("f3", "dummy");
                             }}
                     );
@@ -204,7 +205,7 @@ public class NestedValueToKeyTest {
         final String expectedKey = "test";
 
         xform.configure(new HashMap<String, Object>() {{
-            put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, fieldName);
         }});
 
         final SourceRecord record = new SourceRecord(
@@ -218,7 +219,7 @@ public class NestedValueToKeyTest {
                     put("name", "test");
                     put("f1",
                             new HashMap<String, Object>() {{
-                                put(NestedValueToKey.ConfigName.FIELD_CONFIG, expectedKey);
+                                put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, expectedKey);
                                 put("f3", "dummy");
                             }}
                     );
@@ -237,7 +238,7 @@ public class NestedValueToKeyTest {
         final String expectedKey = "dummy";
 
         xform.configure(new HashMap<String, Object>() {{
-            put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, fieldName);
         }});
 
         final Schema nestedSchema = SchemaBuilder.struct()
@@ -290,7 +291,7 @@ public class NestedValueToKeyTest {
         final int expectedKey = 78;
 
         xform.configure(new HashMap<String, Object>() {{
-            put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, fieldName);
         }});
 
         final Schema integerSchema = SchemaBuilder.struct().field("integer", Schema.INT32_SCHEMA).optional().build();
@@ -342,5 +343,174 @@ public class NestedValueToKeyTest {
                 expectedKey,
                 transformedRecord.key()
         );
+    }
+
+    @Test
+    public void FieldJsonPathSchemalessHeader() {
+        final String fieldName = "name";
+        final String expectedKey = "test";
+        final ConnectHeaders expectedHeaders = new ConnectHeaders();
+        expectedHeaders.add("fullname", "test", null);
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, fieldName);
+            put(NestedValueToKeyAndHeader.ConfigName.HEADER_FIELD_MAPPING, "fullname:name");
+        }});
+
+        final SourceRecord record = new SourceRecord(
+                null,
+                null,
+                "test",
+                null,
+                "key",
+                null,
+                new HashMap<String, Object>() {{
+                    put("name", "test");
+                    put("f1",
+                            new HashMap<String, Object>() {{
+                                put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, expectedKey);
+                                put("f3", "dummy");
+                            }}
+                    );
+                }}
+        );
+        SourceRecord transformedRecord = xform.apply(record);
+        assertEquals(
+                expectedKey,
+                transformedRecord.key()
+        );
+        assertEquals(expectedHeaders, transformedRecord.headers());
+    }
+
+    @Test
+    public void FieldJsonPathWithSchemaAndHeader() {
+        final String fieldName = "$.f1.f3";
+        final String expectedKey = "dummy";
+        final ConnectHeaders expectedHeaders = new ConnectHeaders();
+        expectedHeaders.add("fullname", "somename", null);
+        expectedHeaders.add("fieldVal", "dummy", null);
+
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, fieldName);
+            put(NestedValueToKeyAndHeader.ConfigName.HEADER_FIELD_MAPPING, "fullname:$.name,fieldVal:$.f1.field");
+        }});
+
+        final Schema nestedSchema = SchemaBuilder.struct()
+                .field("field", Schema.STRING_SCHEMA)
+                .field("f3", Schema.STRING_SCHEMA);
+
+        final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA);
+
+        final Schema schema =
+                SchemaBuilder.struct()
+                        .field("name", Schema.STRING_SCHEMA)
+                        .field(
+                                "f1",
+                                nestedSchema
+                        )
+                        .field("books", arraySchema);
+
+
+        final SourceRecord record = new SourceRecord(
+                null,
+                null,
+                "test",
+                null,
+                "key",
+                schema,
+                new Struct(schema) {{
+                    put("name", "somename");
+                    put("f1",
+                            new Struct(nestedSchema) {{
+                                put("field", "dummy");
+                                put("f3", expectedKey);
+                            }}
+                    );
+                    put("books", new ArrayList<String>() {{
+                        add("book1");
+                        add("book2");
+                    }});
+                }}
+        );
+        final SourceRecord transformedRecord = xform.apply(record);
+        assertEquals(
+                expectedKey,
+                transformedRecord.key()
+        );
+        assertEquals(expectedHeaders, transformedRecord.headers());
+    }
+
+    @Test(expected = ConfigException.class)
+    public void headerFieldMappingShouldBeFormattedCorrectly() {
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "field");
+            put(NestedValueToKeyAndHeader.ConfigName.HEADER_FIELD_MAPPING, "fullname$.name");
+        }});
+    }
+
+    @Test(expected = InvalidPathException.class)
+    public void providedInvalidJsonPathInHeaderMap() {
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, "field");
+            put(NestedValueToKeyAndHeader.ConfigName.HEADER_FIELD_MAPPING, "fullname:$a$");
+        }});
+    }
+
+
+    @Test
+    public void FieldJsonPathWithSchemaAndHeaderPathNotFound() {
+        final String fieldName = "$.f1.f3";
+        final String expectedKey = "dummy";
+        final ConnectHeaders expectedHeaders = new ConnectHeaders();
+        expectedHeaders.add("fullname", "somename", null);
+        expectedHeaders.add("fieldVal", null, null);
+
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKeyAndHeader.ConfigName.FIELD_CONFIG, fieldName);
+            put(NestedValueToKeyAndHeader.ConfigName.HEADER_FIELD_MAPPING, "fullname:$.name,fieldVal:$.f1.x.field");
+        }});
+
+        final Schema nestedSchema = SchemaBuilder.struct()
+                .field("field", Schema.STRING_SCHEMA)
+                .field("f3", Schema.STRING_SCHEMA);
+
+        final Schema arraySchema = SchemaBuilder.array(Schema.STRING_SCHEMA);
+
+        final Schema schema =
+                SchemaBuilder.struct()
+                        .field("name", Schema.STRING_SCHEMA)
+                        .field(
+                                "f1",
+                                nestedSchema
+                        )
+                        .field("books", arraySchema);
+
+
+        final SourceRecord record = new SourceRecord(
+                null,
+                null,
+                "test",
+                null,
+                "key",
+                schema,
+                new Struct(schema) {{
+                    put("name", "somename");
+                    put("f1",
+                            new Struct(nestedSchema) {{
+                                put("field", "dummy");
+                                put("f3", expectedKey);
+                            }}
+                    );
+                    put("books", new ArrayList<String>() {{
+                        add("book1");
+                        add("book2");
+                    }});
+                }}
+        );
+        final SourceRecord transformedRecord = xform.apply(record);
+        assertEquals(
+                expectedKey,
+                transformedRecord.key()
+        );
+        assertEquals(expectedHeaders, transformedRecord.headers());
     }
 }
