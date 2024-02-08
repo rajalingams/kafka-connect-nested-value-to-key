@@ -1,6 +1,6 @@
 Collection of Kafka Connect SMTs to set the key and/or header from the value by
-using [JsonPath](https://github.com/json-path/JsonPath) (Supports nested values).
-
+using [JsonPath](https://github.com/json-path/JsonPath) (Supports nested values).  
+-----
 # NestedValueToKey
 
 Custom Kafka Connect SMT to set the key based on the value using Json path. The raw value of the field will be replaced
@@ -47,6 +47,7 @@ transforms.nestedValueToKey.errorMessageField="$.category"
 ```
 apple
 ```
+-----
 
 # NestedValueToKeys
 
@@ -92,6 +93,7 @@ transforms.nestedValueToKeys.keyFieldMapping="item:$.name,aisle:$.location.aisle
   "aisle": 10
 }
 ```
+-----
 
 # NestedValueToHeader
 
@@ -145,6 +147,7 @@ In case the field name is missing or empty in the body, the field value will be 
   }
 ]
 ```
+-----
 
 # NestedValueToKeyAndHeader
 
@@ -212,6 +215,7 @@ In case the field name is missing or empty in the body, the field value will be 
   }
 ]
 ```
+-----
 
 # NestedValueToKeysAndHeader
 
