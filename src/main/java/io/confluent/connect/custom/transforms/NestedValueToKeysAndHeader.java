@@ -10,7 +10,6 @@ import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
 
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
