@@ -60,23 +60,25 @@ public class NestedValueToKey<R extends ConnectRecord<R>> extends BaseNestedValu
 
     @Override
     protected R applySchemaless(R record) {
-        final Map<String, Object> value = requireMap(record.value(), PURPOSE);
-        return record.newRecord(record.topic(), null, null, value.getOrDefault(field, keyOnError), record.valueSchema(), record.value(), record.timestamp(), record.headers());
+        final Map<String, Object> messageValue = requireMap(record.value(), PURPOSE);
+        return record.newRecord(record.topic(), null, null, getKey(messageValue), record.valueSchema(), record.value(), record.timestamp(), record.headers());
     }
 
     @Override
     protected R applyWithSchema(R record) {
         final Struct value = requireStruct(record.value(), PURPOSE);
-        Object keyObject = null;
-        Object messageBody = extractObject(record);
-        if (record.value() != null) {
-            keyObject = fieldExtractor.apply(messageBody);
-        }
+        Object messageValue = extractObject(record);
+        return record.newRecord(record.topic(), null, null, getKey(messageValue), value.schema(), value, record.timestamp(), record.headers());
+    }
+
+    private Object getKey(Object messageValue) {
+        Object keyObject;
+        keyObject = fieldExtractor.apply(messageValue);
         if (keyObject == null || keyObject.toString().isBlank()) {
-            printWarn(messageBody, "The key value for the field {} is null or blank", field);
+            printWarn(messageValue, "The key value for the field {} is null or blank", field);
             keyObject = keyOnError;
         }
-        return record.newRecord(record.topic(), null, null, keyObject, value.schema(), value, record.timestamp(), record.headers());
+        return keyObject;
     }
 
     private void printWarn(Object data, String message, Object... args) {

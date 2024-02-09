@@ -30,9 +30,9 @@ public class NestedValueToKeysAndHeader<R extends ConnectRecord<R>> extends Base
 
     public static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(NestedValueToKeysAndHeader.ConfigName.KEY_FIELD_MAPPING, ConfigDef.Type.LIST, null, ConfigDef.Importance.LOW,
-                    "Map of key field name to json path in the message body. eg: field1:jsonpath1,field2:jsonpath2..")
+                    "Map of key field name to json path in the message value. eg: field1:jsonpath1,field2:jsonpath2..")
             .define(ConfigName.HEADER_FIELD_MAPPING, ConfigDef.Type.LIST, null, ConfigDef.Importance.LOW,
-                    "Map of header field name to json path in the message body. eg: field1:jsonpath1,field2:jsonpath2..");
+                    "Map of header field name to json path in the message value. eg: field1:jsonpath1,field2:jsonpath2..");
 
     private static final String PURPOSE = "construct the record key and header from value";
 
@@ -66,30 +66,27 @@ public class NestedValueToKeysAndHeader<R extends ConnectRecord<R>> extends Base
 
     @Override
     protected R applySchemaless(R record) {
-        final Map<String, Object> value = requireMap(record.value(), PURPOSE);
-        Headers headers = record.headers().duplicate();
-        Map<String, Object> keyData = new LinkedHashMap<>();
-        for (Map.Entry<String, String> fieldItem : keyFieldMap.entrySet()) {
-            keyData.put(fieldItem.getKey(), value.get(fieldItem.getValue()));
-        }
-        if (headerFieldMap != null) {
-            for (Map.Entry<String, String> fieldItem : headerFieldMap.entrySet()) {
-                headers.add(fieldItem.getKey(), value.get(fieldItem.getValue()), null);
-            }
-        }
-        return record.newRecord(record.topic(), null, null, keyData, record.valueSchema(), record.value(), record.timestamp(), headers);
+        final Map<String, Object> messageValue = requireMap(record.value(), PURPOSE);
+        return record.newRecord(record.topic(), null, null,
+                keyFieldExtractor.extractValues(messageValue), record.valueSchema(), record.value(),
+                record.timestamp(), getHeaders(record, messageValue));
     }
 
     @Override
     protected R applyWithSchema(R record) {
         final Struct value = requireStruct(record.value(), PURPOSE);
-        Object messageBody = extractObject(record);
+        Object messageValue = extractObject(record);
+        return record.newRecord(record.topic(), null, keySchema,
+                keyFieldExtractor.extractValues(messageValue), value.schema(), value,
+                record.timestamp(), getHeaders(record, messageValue));
+    }
+
+    private Headers getHeaders(R record, Object messageValue) {
         Headers headers = record.headers().duplicate();
         for (Map.Entry<String, String> fieldItem : headerFieldMap.entrySet()) {
-            headers.add(fieldItem.getKey(), headerFieldExtractor.extractValue(fieldItem.getKey(), messageBody), null);
+            headers.add(fieldItem.getKey(), headerFieldExtractor.extractValue(fieldItem.getKey(), messageValue), null);
         }
-        return record.newRecord(record.topic(), null, keySchema,
-                keyFieldExtractor.extractValues(messageBody), value.schema(), value, record.timestamp(), headers);
+        return headers;
     }
 
     @Override

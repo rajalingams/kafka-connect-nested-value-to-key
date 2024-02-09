@@ -6,6 +6,7 @@ import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
+import org.apache.kafka.connect.errors.DataException;
 import org.junit.After;
 import org.junit.Test;
 
@@ -25,7 +26,6 @@ public class NestedValueToKeyTest {
 
     @Test
     public void testSimpleSchemaWithFieldExtraction() {
-
         Long expectedKey = 200L;
         xform.configure(Collections.singletonMap(NestedValueToKey.ConfigName.FIELD_CONFIG, "id"));
         final Schema simpleStructSchema = SchemaBuilder.struct().name("name").version(1).doc("doc").field("id", Schema.OPTIONAL_INT64_SCHEMA).build();
@@ -164,9 +164,8 @@ public class NestedValueToKeyTest {
         );
     }
 
-
     @Test
-    public void FieldJsonPathSchemalessInvalidFieldName() {
+    public void FieldJsonPathSchemalessNestedFieldName() {
         final String fieldName = "$.f1.field";
         final String expectedKey = "test";
 
@@ -192,10 +191,7 @@ public class NestedValueToKeyTest {
                 }}
         );
         SourceRecord transformedRecord = xform.apply(record);
-        assertNull(
-                "Record should not be affected by missing optional field",
-                transformedRecord.key()
-        );
+        assertEquals(expectedKey, transformedRecord.key());
     }
 
     @Test
@@ -232,6 +228,41 @@ public class NestedValueToKeyTest {
     }
 
     @Test
+    public void FieldJsonPathSchemalessNested() {
+        final String fieldName = "$.f1.f2.f3";
+        final String expectedKey = "test";
+
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
+        }});
+
+        final SourceRecord record = new SourceRecord(
+                null,
+                null,
+                "test",
+                null,
+                "key",
+                null,
+                new HashMap<String, Object>() {{
+                    put("name", "test");
+                    put("f1",
+                            new HashMap<String, Object>() {{
+                                put(NestedValueToKey.ConfigName.FIELD_CONFIG, expectedKey);
+                                put("f2", new HashMap<String, Object>(){{
+                                    put("f3", expectedKey);
+                                }});
+                            }}
+                    );
+                }}
+        );
+        SourceRecord transformedRecord = xform.apply(record);
+        assertEquals(
+                expectedKey,
+                transformedRecord.key()
+        );
+    }
+
+    @Test
     public void FieldJsonPathWithSchema() {
         final String fieldName = "$.f1.f3";
         final String expectedKey = "dummy";
@@ -255,12 +286,11 @@ public class NestedValueToKeyTest {
                         )
                         .field("books", arraySchema);
 
-
         final SourceRecord record = new SourceRecord(
                 null,
                 null,
                 "test",
-                null,
+                SchemaBuilder.STRING_SCHEMA,
                 "key",
                 schema,
                 new Struct(schema) {{
@@ -284,6 +314,27 @@ public class NestedValueToKeyTest {
         );
     }
 
+    @Test(expected = DataException.class)
+    public void FieldJsonPathWithStringSchema() {
+        final String fieldName = "$";
+        final String expectedKey = "dummy";
+
+        xform.configure(new HashMap<String, Object>() {{
+            put(NestedValueToKey.ConfigName.FIELD_CONFIG, fieldName);
+        }});
+
+        final SourceRecord record = new SourceRecord(
+                null,
+                null,
+                "test",
+                SchemaBuilder.STRING_SCHEMA,
+                "key",
+                SchemaBuilder.STRING_SCHEMA,
+                expectedKey
+        );
+        xform.apply(record);
+    }
+
     @Test
     public void complexNestedSchema() {
         final String fieldName = "$.properties.ACCTSUFF.integer.integer";
@@ -302,7 +353,6 @@ public class NestedValueToKeyTest {
                 .field("string", stringSchema);
 
         final Schema propertyMapSchema = SchemaBuilder.map(Schema.STRING_SCHEMA, propertyValueSchema).build();
-
 
         final Schema schema =
                 SchemaBuilder.struct()

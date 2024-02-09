@@ -165,10 +165,9 @@ public class NestedValueToKeyAndHeaderTest {
         );
     }
 
-
     @Test
-    public void FieldJsonPathSchemalessInvalidFieldName() {
-        final String fieldName = "$.f1.field";
+    public void FieldJsonPathSchemalessNestedFieldName() {
+        final String fieldName = "$.f1.f3";
         final String expectedKey = "dummy";
 
         xform.configure(new HashMap<String, Object>() {{
@@ -193,10 +192,7 @@ public class NestedValueToKeyAndHeaderTest {
                 }}
         );
         SourceRecord transformedRecord = xform.apply(record);
-        assertNull(
-                "Record should not be affected by missing optional field",
-                transformedRecord.key()
-        );
+        assertEquals(expectedKey, transformedRecord.key());
     }
 
     @Test
@@ -454,7 +450,6 @@ public class NestedValueToKeyAndHeaderTest {
             put(NestedValueToKeyAndHeader.ConfigName.HEADER_FIELD_MAPPING, "fullname:$a$");
         }});
     }
-
 
     @Test
     public void FieldJsonPathWithSchemaAndHeaderPathNotFound() {

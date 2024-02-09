@@ -22,7 +22,7 @@ public class NestedValueToHeader<R extends ConnectRecord<R>> extends BaseNestedV
 
     public static final ConfigDef CONFIG_DEF = new ConfigDef()
             .define(ConfigName.HEADER_FIELD_MAPPING, ConfigDef.Type.LIST, null, ConfigDef.Importance.LOW,
-                    "Map of header field name to json path in the message body. eg: field1:jsonpath1,field2:jsonpath2..");
+                    "Map of header field name to json path in the message value. eg: field1:jsonpath1,field2:jsonpath2..");
 
     private static final String PURPOSE = "construct the record header from value";
     private List<String> headerFieldList;
@@ -44,25 +44,25 @@ public class NestedValueToHeader<R extends ConnectRecord<R>> extends BaseNestedV
 
     @Override
     protected R applySchemaless(R record) {
-        final Map<String, Object> value = requireMap(record.value(), PURPOSE);
-        Headers headers = record.headers().duplicate();
-        if (headerFieldMap != null) {
-            for (Map.Entry<String, String> fieldItem : headerFieldMap.entrySet()) {
-                headers.add(fieldItem.getKey(), value.get(fieldItem.getValue()), null);
-            }
-        }
-        return record.newRecord(record.topic(), null, null, record.key(), record.valueSchema(), record.value(), record.timestamp(), headers);
+        final Map<String, Object> messageValue = requireMap(record.value(), PURPOSE);
+        return record.newRecord(record.topic(), null, null, record.key(),
+                record.valueSchema(), record.value(), record.timestamp(), getHeaders(record, messageValue));
     }
 
     @Override
     protected R applyWithSchema(R record) {
         final Struct value = requireStruct(record.value(), PURPOSE);
-        Object messageBody = extractObject(record);
+        Object messageValue = extractObject(record);
+        return record.newRecord(record.topic(), null, null, record.key(),
+                value.schema(), value, record.timestamp(), getHeaders(record, messageValue));
+    }
+
+    private Headers getHeaders(R record, Object messageValue) {
         Headers headers = record.headers().duplicate();
         for (Map.Entry<String, String> fieldItem : headerFieldMap.entrySet()) {
-            headers.add(fieldItem.getKey(), headerFieldExtractor.extractValue(fieldItem.getKey(), messageBody), null);
+            headers.add(fieldItem.getKey(), headerFieldExtractor.extractValue(fieldItem.getKey(), messageValue), null);
         }
-        return record.newRecord(record.topic(), null, null, record.key(), value.schema(), value, record.timestamp(), headers);
+        return headers;
     }
 
     @Override

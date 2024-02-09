@@ -130,7 +130,6 @@ public class NestedValueToHeaderTest {
         }});
     }
 
-
     @Test
     public void FieldJsonPathWithSchemaAndHeaderPathNotFound() {
         final ConnectHeaders expectedHeaders = new ConnectHeaders();
