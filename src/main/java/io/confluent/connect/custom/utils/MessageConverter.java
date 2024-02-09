@@ -11,7 +11,7 @@ import java.util.List;
 import java.util.Map;
 
 
-public class TypeConverter {
+public class MessageConverter {
     private static Map<String, Object> convertStruct(Struct kafkaConnectStruct,
                                                      Schema kafkaConnectSchema) {
         Map<String, Object> record = new HashMap<>();

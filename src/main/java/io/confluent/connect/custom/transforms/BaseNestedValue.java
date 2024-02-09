@@ -8,7 +8,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import static io.confluent.connect.custom.utils.TypeConverter.convertObject;
+import static io.confluent.connect.custom.utils.MessageConverter.convertObject;
 import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
 
 public abstract class BaseNestedValue<R extends ConnectRecord<R>>  implements Transformation<R> {
