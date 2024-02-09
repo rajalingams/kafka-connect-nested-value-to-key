@@ -1,7 +1,3 @@
-/*
- * Copyright [2018 - 2019] Confluent Inc.
- */
-
 package io.confluent.connect.custom.utils;
 
 import org.apache.kafka.connect.data.Field;
