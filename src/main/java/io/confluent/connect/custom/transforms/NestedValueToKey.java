@@ -4,16 +4,12 @@ import io.confluent.connect.custom.utils.FieldJsonPathExtractor;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.ConnectRecord;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Map;
 import java.util.function.Function;
-
-import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
-import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
 
 public class NestedValueToKey<R extends ConnectRecord<R>> extends BaseNestedValue<R> {
     private static final Logger log = LoggerFactory.getLogger(NestedValueToKey.class);
@@ -59,16 +55,9 @@ public class NestedValueToKey<R extends ConnectRecord<R>> extends BaseNestedValu
     }
 
     @Override
-    protected R applySchemaless(R record) {
-        final Map<String, Object> messageValue = requireMap(record.value(), PURPOSE);
+    public R apply(R record) {
+        Object messageValue = extractObject(record, PURPOSE);
         return record.newRecord(record.topic(), null, null, getKey(messageValue), record.valueSchema(), record.value(), record.timestamp(), record.headers());
-    }
-
-    @Override
-    protected R applyWithSchema(R record) {
-        final Struct value = requireStruct(record.value(), PURPOSE);
-        Object messageValue = extractObject(record);
-        return record.newRecord(record.topic(), null, null, getKey(messageValue), value.schema(), value, record.timestamp(), record.headers());
     }
 
     private Object getKey(Object messageValue) {

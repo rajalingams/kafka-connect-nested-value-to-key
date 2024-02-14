@@ -4,15 +4,11 @@ import io.confluent.connect.custom.utils.FieldListJsonPathExtractor;
 import org.apache.kafka.common.config.ConfigDef;
 import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.ConnectRecord;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.header.Headers;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
 
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
-import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
 
 public class NestedValueToHeader<R extends ConnectRecord<R>> extends BaseNestedValue<R> {
 
@@ -43,18 +39,10 @@ public class NestedValueToHeader<R extends ConnectRecord<R>> extends BaseNestedV
     }
 
     @Override
-    protected R applySchemaless(R record) {
-        final Map<String, Object> messageValue = requireMap(record.value(), PURPOSE);
+    public R apply(R record) {
+        Object messageValue = extractObject(record, PURPOSE);
         return record.newRecord(record.topic(), null, null, record.key(),
                 record.valueSchema(), record.value(), record.timestamp(), getHeaders(record, messageValue));
-    }
-
-    @Override
-    protected R applyWithSchema(R record) {
-        final Struct value = requireStruct(record.value(), PURPOSE);
-        Object messageValue = extractObject(record);
-        return record.newRecord(record.topic(), null, null, record.key(),
-                value.schema(), value, record.timestamp(), getHeaders(record, messageValue));
     }
 
     private Headers getHeaders(R record, Object messageValue) {

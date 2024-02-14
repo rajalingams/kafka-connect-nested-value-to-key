@@ -6,14 +6,10 @@ import org.apache.kafka.common.config.ConfigException;
 import org.apache.kafka.connect.connector.ConnectRecord;
 import org.apache.kafka.connect.data.Schema;
 import org.apache.kafka.connect.data.SchemaBuilder;
-import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.transforms.util.SimpleConfig;
 
 import java.util.List;
 import java.util.Map;
-
-import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
-import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
 
 public class NestedValueToKeys<R extends ConnectRecord<R>> extends BaseNestedValue<R> {
 
@@ -50,19 +46,11 @@ public class NestedValueToKeys<R extends ConnectRecord<R>> extends BaseNestedVal
     }
 
     @Override
-    protected R applySchemaless(R record) {
-        final Map<String, Object> messageValue = requireMap(record.value(), PURPOSE);
+    public R apply(R record) {
+        Object messageValue = extractObject(record, PURPOSE);
         return record.newRecord(record.topic(), null, keySchema,
                 keyFieldExtractor.extractValues(messageValue), record.valueSchema(),
                 record.value(), record.timestamp(), record.headers());
-    }
-
-    @Override
-    protected R applyWithSchema(R record) {
-        final Struct value = requireStruct(record.value(), PURPOSE);
-        return record.newRecord(record.topic(), null, null,
-                keyFieldExtractor.extractValues(extractObject(record)),
-                value.schema(), value, record.timestamp(), record.headers());
     }
 
     @Override

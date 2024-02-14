@@ -9,29 +9,18 @@ import java.util.List;
 import java.util.Map;
 
 import static io.confluent.connect.custom.utils.MessageConverter.convertObject;
+import static org.apache.kafka.connect.transforms.util.Requirements.requireMap;
 import static org.apache.kafka.connect.transforms.util.Requirements.requireStruct;
 
-public abstract class BaseNestedValue<R extends ConnectRecord<R>>  implements Transformation<R> {
-    private static final String FIELD_EXTRACTION_PURPOSE = "field extraction";
-
-
-    protected abstract R applySchemaless(R record);
-    protected abstract R applyWithSchema(R record);
-
-    @Override
-    public R apply(R record) {
-        if (record.valueSchema() == null) {
-            return applySchemaless(record);
-        } else {
-            return applyWithSchema(record);
-        }
-    }
-
-    public Object extractObject(R record) {
-        return convertObject(
-                requireStruct(record.value(), FIELD_EXTRACTION_PURPOSE),
-                record.valueSchema()
-        );
+public abstract class BaseNestedValue<R extends ConnectRecord<R>> implements Transformation<R> {
+    public Object extractObject(R record, String purpose) {
+        if (record.valueSchema() == null)
+            return requireMap(record.value(), purpose);
+        else
+            return convertObject(
+                    requireStruct(record.value(), purpose),
+                    record.valueSchema()
+            );
     }
 
     static Map<String, String> parseMappings(List<String> mappings, String config) {
